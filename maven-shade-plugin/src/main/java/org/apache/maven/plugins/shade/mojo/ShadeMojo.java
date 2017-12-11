@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.execution.MavenSession;
@@ -58,13 +59,17 @@ import org.apache.maven.plugins.shade.pom.PomWriter;
 import org.apache.maven.plugins.shade.relocation.Relocator;
 import org.apache.maven.plugins.shade.relocation.SimpleRelocator;
 import org.apache.maven.plugins.shade.resource.ResourceTransformer;
+import org.apache.maven.project.DefaultDependencyResolutionRequest;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
+import org.apache.maven.project.DependencyResolutionException;
+import org.apache.maven.project.DependencyResolutionResult;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectBuilder;
 import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.project.ProjectBuildingResult;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.maven.shared.artifact.DefaultArtifactCoordinate;
 import org.apache.maven.shared.artifact.resolve.ArtifactResolver;
 import org.apache.maven.shared.artifact.resolve.ArtifactResolverException;
@@ -95,6 +100,9 @@ public class ShadeMojo
     extends AbstractMojo
     implements Contextualizable
 {
+    @Component
+    private ProjectDependenciesResolver projectDependenciesResolver;
+
     /**
      * The current Maven session.
      */
@@ -369,6 +377,54 @@ public class ShadeMojo
      */
     private PlexusContainer plexusContainer;
 
+    private Set<Artifact> originalTestArtifacts;
+
+    private Set<Artifact> getOriginalTestArtifacts() throws MojoExecutionException {
+        if (originalTestArtifacts == null) {
+            originalTestArtifacts = getOriginalTestArtifacts0();
+        }
+        return originalTestArtifacts;
+    }
+
+    private Set<Artifact> getOriginalTestArtifacts0() throws MojoExecutionException
+    {
+        if ( !shadeTestJar) {
+            return Collections.emptySet();
+        }
+
+        DefaultDependencyResolutionRequest dependencyResolutionRequest =
+                new DefaultDependencyResolutionRequest( project, session.getRepositorySession() );
+
+        try
+        {
+            DependencyResolutionResult dependencyResolutionResult =
+                    projectDependenciesResolver.resolve( dependencyResolutionRequest );
+
+            Set<Artifact> artifacts = new LinkedHashSet<Artifact>();
+            if ( dependencyResolutionResult.getDependencyGraph() != null
+                    && !dependencyResolutionResult.getDependencyGraph().getChildren().isEmpty() )
+            {
+                RepositoryUtils.toArtifacts( artifacts, dependencyResolutionResult.getDependencyGraph().getChildren(),
+                        Collections.singletonList( project.getArtifact().getId() ), null );
+            }
+
+            Set<Artifact> testArtifacts = new LinkedHashSet<Artifact>();
+            for ( Artifact artifact: artifacts )
+            {
+                if ( artifact.getScope().equals( Artifact.SCOPE_TEST ) )
+                {
+                    testArtifacts.add( artifact );
+                }
+            }
+
+            return testArtifacts;
+        }
+        catch ( DependencyResolutionException ex )
+        {
+            throw new MojoExecutionException( ex.getMessage(), ex );
+        }
+    }
+
     public void contextualize( Context context )
         throws ContextException
     {
@@ -381,7 +437,6 @@ public class ShadeMojo
     public void execute()
         throws MojoExecutionException
     {
-
         setupHintedShader();
 
         Set<File> artifacts = new LinkedHashSet<File>();
@@ -422,7 +477,7 @@ public class ShadeMojo
             }
         }
 
-        processArtifactSelectors( artifacts, artifactIds, sourceArtifacts, artifactSelector );
+        processArtifactSelectors( artifacts, artifactIds, testArtifacts, sourceArtifacts, artifactSelector );
 
         File outputJar = ( outputFile != null ) ? outputFile : shadedArtifactFileWithClassifier();
         File sourcesJar = shadedSourceArtifactFileWithClassifier();
@@ -490,7 +545,7 @@ public class ShadeMojo
                         replaceFile( finalFile, testJar );
                         testJar = finalFile;
                     }
-                    
+
                     renamed = true;
                 }
 
@@ -599,9 +654,25 @@ public class ShadeMojo
         }
     }
 
-    private void processArtifactSelectors( Set<File> artifacts, Set<String> artifactIds, Set<File> sourceArtifacts,
-                                           ArtifactSelector artifactSelector )
+    private void processArtifactSelectors( Set<File> artifacts, Set<String> artifactIds, Set<File> testArtifacts,
+        Set<File> sourceArtifacts, ArtifactSelector artifactSelector ) throws MojoExecutionException
     {
+        for ( Artifact artifact : getOriginalTestArtifacts() )
+        {
+            if ( !artifactSelector.isSelected( artifact ) )
+            {
+                getLog().info( "Excluding " + artifact.getId() + " from the shaded test jar." );
+                continue;
+            }
+            if ( "pom".equals( artifact.getType() ) )
+            {
+                getLog().info( "Skipping pom dependency " + artifact.getId() + " in the shaded test jar." );
+                continue;
+            }
+            getLog().info( "Including " + artifact.getId() + " in the shaded test jar." );
+            testArtifacts.add( artifact.getFile() );
+        }
+
         for ( Artifact artifact : project.getArtifacts() )
         {
             if ( !artifactSelector.isSelected( artifact ) )
@@ -722,7 +793,7 @@ public class ShadeMojo
         coordinate.setVersion( artifact.getVersion() );
         coordinate.setExtension( "jar" );
         coordinate.setClassifier( "sources" );
-        
+
         Artifact resolvedArtifact;
         try
         {
@@ -782,7 +853,11 @@ public class ShadeMojo
 
             artifacts.put( project.getArtifact(), new ArtifactId( project.getArtifact() ) );
 
-            for ( Artifact artifact : project.getArtifacts() )
+            Set<Artifact> allArtifacts = new HashSet<Artifact>();
+            allArtifacts.addAll( project.getArtifacts() );
+            allArtifacts.addAll( getOriginalTestArtifacts() );
+
+            for ( Artifact artifact : allArtifacts )
             {
                 artifacts.put( artifact, new ArtifactId( artifact ) );
             }
