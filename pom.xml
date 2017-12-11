@@ -41,10 +41,9 @@
   </prerequisites>
 
   <scm>
-    <connection>scm:git:git@github.com/gatling/maven-plugins.git</connection>
-    <developerConnection>scm:git:git@github.com/gatling/maven-plugins.git</developerConnection>
-    <url>https://github.com/gatling/maven-plugins.git</url>
-    <tag>HEAD</tag>
+    <url>https://github.com/gatling/maven-plugins</url>
+    <connection>scm:git:git@github.com:gatling/maven-plugins.git</connection>
+    <developerConnection>scm:git:git@github.com:gatling/maven-plugins.git</developerConnection>
   </scm>
 
   <modules>
