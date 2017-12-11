@@ -1,2 +1,0 @@
-Test native librariy file which will never stay lib/first.so in
-resulting jmod file based on the non default configuration.
