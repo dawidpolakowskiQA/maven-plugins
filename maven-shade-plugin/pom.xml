@@ -23,14 +23,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>maven-plugins</artifactId>
-    <groupId>org.apache.maven.plugins</groupId>
-    <version>30</version>
-    <relativePath>../../pom/maven/maven-plugins/pom.xml</relativePath>
+    <groupId>io.gatling</groupId>
+    <artifactId>maven-plugins-aggregator</artifactId>
+    <version>3.1.0.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>maven-shade-plugin</artifactId>
-  <version>3.1.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Shade Plugin</name>
@@ -43,26 +41,13 @@
     <maven>${mavenVersion}</maven>
   </prerequisites>
 
-  <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/trunk/maven-shade-plugin</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/trunk/maven-shade-plugin</developerConnection>
-    <url>http://svn.apache.org/viewvc/maven/plugins/trunk/maven-shade-plugin</url>
-  </scm>
-  <issueManagement>
-    <system>jira</system>
-    <url>https://issues.apache.org/jira/browse/MSHADE</url>
-  </issueManagement>
-  <distributionManagement>
-    <site>
-      <id>apache.website</id>
-      <url>scm:svn:https://svn.apache.org/repos/infra/websites/production/maven/components/${maven.site.path}</url>
-    </site>
-  </distributionManagement>
-
   <properties>
-    <mavenVersion>3.0</mavenVersion>
+    <mavenVersion>3.5.2</mavenVersion> <!-- use modern version that doesn't pull old crap, eg guava 10 -->
     <currentVersion>${project.version}</currentVersion>
     <asmVersion>6.0_BETA</asmVersion>
+    <maven.compiler.source>1.6</maven.compiler.source> <!-- from org.apache.maven:maven-parent:30 -->
+    <maven.compiler.target>1.6</maven.compiler.target> <!-- from org.apache.maven:maven-parent:30 -->
+    <mavenPluginToolsVersion>3.4</mavenPluginToolsVersion> <!-- from org.apache.maven:maven-parent:30 -->
   </properties>
 
   <contributors>
@@ -71,6 +56,9 @@
     </contributor>
     <contributor>
       <name>Anthony Dahanne</name>
+    </contributor>
+    <contributor>
+      <name>Stephane Landelle</name>
     </contributor>
   </contributors>
 
@@ -93,12 +81,18 @@
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
+      <artifactId>maven-compat</artifactId>
+      <version>${mavenVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
       <artifactId>maven-artifact</artifactId>
       <version>${mavenVersion}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.plugin-tools</groupId>
       <artifactId>maven-plugin-annotations</artifactId>
+      <version>${mavenPluginToolsVersion}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -148,6 +142,7 @@
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-component-annotations</artifactId>
+      <version>1.6</version> <!-- from org.apache.maven:maven-parent:30 -->
       <scope>provided</scope>
     </dependency>
 
@@ -165,11 +160,7 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>19.0</version>
-    </dependency>
+    <!-- drop guava dependency so it doesn't conflict with version pull from sisu -->
 
     <dependency>
       <groupId>org.mockito</groupId>
