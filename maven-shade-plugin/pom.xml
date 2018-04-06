@@ -24,14 +24,14 @@
 
   <parent>
     <groupId>io.gatling</groupId>
-    <artifactId>maven-plugins-aggregator</artifactId>
+    <artifactId>gatling-maven-plugins-aggregator</artifactId>
     <version>3.1.0.2-SNAPSHOT</version>
   </parent>
 
-  <artifactId>maven-shade-plugin</artifactId>
+  <artifactId>gatling-maven-shade-plugin</artifactId>
   <packaging>maven-plugin</packaging>
 
-  <name>Apache Maven Shade Plugin</name>
+  <name>Gatling Maven Shade Plugin, fork of Apache's</name>
   <description>
     Repackages the project classes together with their dependencies into a single uber-jar, optionally renaming classes
     or removing unused classes.
