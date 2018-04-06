@@ -30,7 +30,7 @@
 
   <groupId>io.gatling</groupId>
   <artifactId>gatling-maven-plugins-aggregator</artifactId>
-  <version>3.1.0.2-SNAPSHOT</version>
+  <version>3.1.0.2</version>
   <packaging>pom</packaging>
 
   <name>Gatling Maven Plugins Aggregator, fork of Apache's</name>
